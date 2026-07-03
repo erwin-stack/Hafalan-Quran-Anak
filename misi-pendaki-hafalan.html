@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Misi Pendaki Gunung Penghafal Al-Qur'an</title>
+
+<!-- Google Identity Services (GSI) -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<!-- Font: Baloo 2 (judul ceria & bulat), Nunito (teks), Amiri (Arab) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     DESIGN TOKENS
+     Tema: "Misi Pendaki Gunung" - langit sore pastel, puncak hijau,
+     matahari kuning lembut. Semua warna & ukuran dipusatkan di sini.
+  ============================================================ */
+  :root{
+    --sky-top:#BFE7FB;      /* biru langit */
+    --sky-bottom:#EAF8E9;   /* hijau muda pudar di kaki gunung */
+    --mint:#B7ECC8;         /* hijau muda pos belum tercapai */
+    --mint-deep:#4CAF7D;    /* hijau sukses / pos tercapai */
+    --sun:#FFDE7A;          /* kuning matahari */
+    --sun-deep:#FFB648;     /* kuning aksen tombol */
+    --sky-card:#DDF3FD;     /* biru muda kartu */
+    --cloud:#FFFFFF;
+    --rock:#8A7161;         /* coklat batu, aksen teks sekunder */
+    --ink:#3A4750;          /* teks utama, abu gelap lembut, bukan hitam pekat */
+    --berry:#FF8C7A;        /* aksen merah muda hangat (tombol belum hafal) */
+    --star:#FFC94A;         /* emas bintang */
+    --shadow: 0 8px 24px rgba(58,71,80,.12);
+    --radius-lg: 28px;
+    --radius-md: 18px;
+    --font-title:'Baloo 2', sans-serif;
+    --font-body:'Nunito', sans-serif;
+    --font-arab:'Amiri', serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    font-family:var(--font-body);
+    color:var(--ink);
+    background:linear-gradient(180deg,var(--sky-top) 0%, var(--sky-bottom) 65%, #DFF3D8 100%);
+    background-attachment:fixed;
+    overflow-x:hidden;
+  }
+
+  .screen{ display:none; min-height:100vh; width:100%; position:relative; }
+  .screen.active{ display:flex; flex-direction:column; }
+
+  /* ---------- Dekorasi awan & matahari (dipakai di beberapa layar) ---------- */
+  .decor-sun{
+    position:absolute; top:28px; right:34px; width:76px; height:76px; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #FFF3C4, var(--sun-deep));
+    box-shadow:0 0 40px 10px rgba(255,183,72,.45);
+    animation:pulse-sun 4s ease-in-out infinite;
+  }
+  @keyframes pulse-sun{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+  .decor-cloud{
+    position:absolute; background:#fff; border-radius:50px; opacity:.9;
+    box-shadow:0 6px 14px rgba(58,71,80,.08);
+  }
+  .decor-cloud::before,.decor-cloud::after{
+    content:''; position:absolute; background:#fff; border-radius:50%;
+  }
+  .cloud1{ width:90px; height:32px; top:80px; left:6%; }
+  .cloud1::before{ width:46px; height:46px; top:-22px; left:10px; }
+  .cloud1::after{ width:34px; height:34px; top:-16px; left:48px; }
+  .cloud2{ width:70px; height:26px; top:150px; right:12%; }
+  .cloud2::before{ width:36px; height:36px; top:-16px; left:8px; }
+  .cloud2::after{ width:26px; height:26px; top:-12px; left:38px; }
+
+  /* ============================================================
+     1. LOGIN
+  ============================================================ */
+  #screen-login{ align-items:center; justify-content:center; text-align:center; padding:24px; }
+  .login-card{
+    background:var(--cloud); border-radius:var(--radius-lg); padding:44px 34px;
+    box-shadow:var(--shadow); max-width:420px; position:relative; z-index:2;
+    border:4px solid var(--sun);
+  }
+  .login-mountain-emoji{ font-size:64px; display:block; margin-bottom:6px;}
+  .app-title{
+    font-family:var(--font-title); font-weight:800; font-size:1.7rem; color:var(--mint-deep);
+    margin:6px 0 4px;
+  }
+  .app-subtitle{ color:var(--rock); font-weight:600; margin:0 0 26px; font-size:.98rem; }
+  .btn{
+    font-family:var(--font-title); font-weight:700; border:none; cursor:pointer;
+    border-radius:100px; padding:14px 26px; font-size:1rem;
+    transition:transform .15s ease, box-shadow .15s ease; box-shadow:var(--shadow);
+  }
+  .btn:active{ transform:scale(.96); }
+  .btn-google{
+    background:var(--cloud); color:var(--ink); border:2px solid #E3E9EA;
+    display:inline-flex; align-items:center; gap:10px; padding:13px 24px;
+  }
+  .btn-google:hover{ box-shadow:0 10px 20px rgba(58,71,80,.15); }
+  .btn-primary{ background:var(--mint-deep); color:#fff; }
+  .btn-sun{ background:var(--sun-deep); color:#5A3B00; }
+  .btn-outline{
+    background:transparent; border:2px solid var(--mint-deep); color:var(--mint-deep);
+    box-shadow:none;
+  }
+  .login-note{ margin-top:18px; font-size:.8rem; color:var(--rock); line-height:1.5; }
+  .g-icon{ width:20px; height:20px; }
+
+  /* ============================================================
+     2. PILIH KARAKTER
+  ============================================================ */
+  #screen-character{ align-items:center; justify-content:center; text-align:center; padding:24px; gap:8px;}
+  .char-heading{ font-family:var(--font-title); font-weight:800; font-size:1.6rem; color:var(--ink); margin-bottom:34px; z-index:2;}
+  .char-heading span{ color:var(--mint-deep); }
+  .char-wrap{ display:flex; gap:28px; flex-wrap:wrap; justify-content:center; z-index:2; }
+  .char-card{
+    width:210px; background:var(--cloud); border-radius:var(--radius-lg);
+    padding:28px 18px 24px; box-shadow:var(--shadow); cursor:pointer; border:4px solid transparent;
+    transition:transform .18s ease, border-color .18s ease;
+  }
+  .char-card:hover{ transform:translateY(-8px) rotate(-1deg); border-color:var(--sun-deep); }
+  .char-card:nth-child(2):hover{ transform:translateY(-8px) rotate(1deg); }
+  .char-avatar{
+    width:110px; height:110px; border-radius:50%; margin:0 auto 16px; display:flex;
+    align-items:center; justify-content:center; font-size:58px;
+  }
+  .char-card.hamzah .char-avatar{ background:linear-gradient(160deg,#D7F3FF,#9FDFF7); }
+  .char-card.athiyah .char-avatar{ background:linear-gradient(160deg,#FFE4EF,#FFC1DA); }
+  .char-name{ font-family:var(--font-title); font-weight:700; font-size:1.25rem; margin:0 0 4px; }
+  .char-star{ color:var(--rock); font-weight:700; font-size:.9rem; }
+
+  /* ============================================================
+     3. DASHBOARD / JALUR PENDAKIAN
+  ============================================================ */
+  #screen-dashboard{ padding:0 0 60px; align-items:center; }
+  .topbar{
+    width:100%; display:flex; align-items:center; justify-content:space-between;
+    padding:18px 22px; background:rgba(255,255,255,.75); backdrop-filter:blur(6px);
+    position:sticky; top:0; z-index:5; box-shadow:0 2px 10px rgba(58,71,80,.06);
+  }
+  .topbar-left{ display:flex; align-items:center; gap:12px; }
+  .topbar-avatar{ width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px;}
+  .hamzah-bg{ background:#D7F3FF; } .athiyah-bg{ background:#FFE4EF; }
+  .topbar-name{ font-family:var(--font-title); font-weight:700; font-size:1.05rem; line-height:1.1; }
+  .cloud-status{ font-size:.72rem; color:var(--mint-deep); font-weight:700; }
+  .topbar-right{ display:flex; align-items:center; gap:10px; }
+  .star-badge{
+    background:var(--sun); color:#5A3B00; font-family:var(--font-title); font-weight:800;
+    padding:8px 16px; border-radius:100px; font-size:.95rem; box-shadow:var(--shadow);
+    display:flex; align-items:center; gap:6px;
+  }
+  .icon-btn{
+    background:#fff; border:2px solid #E3E9EA; border-radius:100px; width:40px; height:40px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.1rem;
+    transition:transform .15s;
+  }
+  .icon-btn:hover{ transform:scale(1.08); }
+
+  .mission-title{
+    font-family:var(--font-title); font-weight:800; text-align:center; color:var(--ink);
+    margin:26px 0 6px; font-size:1.3rem;
+  }
+  .mission-sub{ text-align:center; color:var(--rock); font-weight:600; font-size:.88rem; margin-bottom:10px;}
+
+  /* Jalur pendakian: garis putus-putus vertikal + pos zigzag */
+  .trail{
+    position:relative; width:100%; max-width:480px; padding:40px 20px 10px;
+    display:flex; flex-direction:column; gap:46px;
+  }
+  .trail::before{
+    content:''; position:absolute; left:50%; top:0; bottom:0; width:0;
+    border-left:5px dashed #BFE3C9; transform:translateX(-50%); z-index:0;
+  }
+  .pos-item{ display:flex; align-items:center; gap:16px; position:relative; z-index:1; }
+  .pos-item.right{ flex-direction:row; }
+  .pos-item.left{ flex-direction:row-reverse; text-align:right; }
+  .pos-circle{
+    flex:none; width:84px; height:84px; border-radius:50%; background:var(--mint);
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    cursor:pointer; border:5px solid #fff; box-shadow:var(--shadow);
+    transition:transform .18s ease, box-shadow .25s ease;
+    font-size:26px;
+  }
+  .pos-circle:hover{ transform:scale(1.08); }
+  .pos-circle.done{
+    background:linear-gradient(160deg,#8FE3AE,var(--mint-deep));
+    box-shadow:0 0 0 4px rgba(76,175,125,.25), 0 0 26px 8px rgba(76,175,125,.55);
+  }
+  .pos-circle .pos-star{ font-size:15px; margin-top:-2px; }
+  .pos-label{
+    background:#fff; padding:10px 16px; border-radius:16px; box-shadow:var(--shadow);
+    font-family:var(--font-title); font-weight:700; font-size:.95rem; min-width:120px;
+  }
+  .pos-label small{ display:block; font-family:var(--font-body); font-weight:600; color:var(--rock); font-size:.72rem; margin-top:2px;}
+  .peak-flag{ text-align:center; font-size:44px; margin-top:10px; }
+  .peak-text{ text-align:center; font-family:var(--font-title); font-weight:700; color:var(--rock); font-size:.9rem;}
+
+  /* ============================================================
+     4. RUANG HAFALAN
+  ============================================================ */
+  #screen-memorize{ align-items:center; padding:20px 16px 60px; }
+  .mem-header{ width:100%; max-width:520px; display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+  .mem-header h2{ font-family:var(--font-title); font-size:1.3rem; margin:0; flex:1; }
+  .mem-header .status-pill{
+    font-size:.75rem; font-weight:800; padding:6px 12px; border-radius:100px;
+    background:var(--mint); color:#256B45;
+  }
+  .mem-header .status-pill.locked{ background:#FDE1DA; color:#B4402A; }
+
+  .ayat-card{
+    width:100%; max-width:520px; border-radius:var(--radius-lg);
+    background:linear-gradient(160deg, var(--sky-card), #C9EFF7 60%, var(--mint) 130%);
+    padding:38px 26px; text-align:center; cursor:pointer; box-shadow:var(--shadow);
+    border:5px solid #fff; position:relative; min-height:170px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transition:filter .25s ease;
+  }
+  .ayat-text{
+    font-family:var(--font-arab); font-size:2.1rem; line-height:2.3; direction:rtl;
+    color:#204A3A; transition:filter .3s ease, opacity .3s ease;
+  }
+  .ayat-text.hidden{ filter:blur(9px); opacity:.55; }
+  .ayat-hint{ margin-top:14px; font-size:.78rem; color:var(--rock); font-weight:700; }
+  .ayat-meta{ margin-top:6px; font-size:.8rem; color:var(--mint-deep); font-weight:800; }
+
+  .mem-actions{ width:100%; max-width:520px; display:flex; flex-direction:column; gap:14px; margin-top:22px; }
+  .mem-actions .btn{ width:100%; padding:16px; font-size:1.05rem; display:flex; align-items:center; justify-content:center; gap:10px;}
+  .btn-audio{ background:#fff; color:var(--ink); border:2px solid #E3E9EA; }
+  .btn-hafal-off{ background:var(--berry); color:#fff; }
+  .btn-hafal-on{ background:var(--mint-deep); color:#fff; }
+  .btn-back-mem{ background:transparent; color:var(--rock); border:2px solid #E3E9EA; box-shadow:none; }
+
+  .confetti-msg{
+    margin-top:16px; font-family:var(--font-title); font-weight:800; color:var(--mint-deep);
+    text-align:center; font-size:1.05rem; display:none;
+  }
+  .confetti-msg.show{ display:block; animation:pop-in .35s ease; }
+  @keyframes pop-in{ from{ transform:scale(.7); opacity:0;} to{ transform:scale(1); opacity:1;} }
+
+  footer.app-footer{ text-align:center; color:var(--rock); font-size:.72rem; padding:20px; opacity:.7; }
+
+  @media (max-width:480px){
+    .ayat-text{ font-size:1.6rem; line-height:2; }
+    .pos-label{ min-width:96px; font-size:.85rem; }
+    .pos-circle{ width:70px; height:70px; font-size:20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= 1. LOGIN ======================= -->
+<section id="screen-login" class="screen active">
+  <div class="decor-sun"></div>
+  <div class="decor-cloud cloud1"></div>
+  <div class="decor-cloud cloud2"></div>
+  <div class="login-card">
+    <span class="login-mountain-emoji">🏔️</span>
+    <h1 class="app-title">Misi Pendaki Gunung<br>Penghafal Al-Qur'an</h1>
+    <p class="app-subtitle">Petualangan seru menghafal Juz 30 untuk Hamzah &amp; Athiyah</p>
+    <button class="btn btn-google" id="btnGoogleLogin">
+      <svg class="g-icon" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4c-7.5 0-14 4.2-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.4-1.9 14.3-5.1l-6.6-5.6C29.6 35 26.9 36 24 36c-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.9 39.7 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.6 5.6C41.9 35.9 44 30.4 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+      Hubungkan ke Google Drive
+    </button>
+    <p class="login-note">100% gratis — data hafalan hanya disimpan di folder pribadi aplikasi (App Data) di Google Drive milikmu sendiri, aman &amp; tidak terlihat orang lain.</p>
+  </div>
+</section>
+
+<!-- ======================= 2. PILIH KARAKTER ======================= -->
+<section id="screen-character" class="screen">
+  <div class="decor-sun"></div>
+  <div class="decor-cloud cloud1"></div>
+  <div class="decor-cloud cloud2"></div>
+  <h2 class="char-heading">Siapa yang akan <span>berpetualang</span> hari ini?</h2>
+  <div class="char-wrap">
+    <div class="char-card hamzah" onclick="selectCharacter('Hamzah')">
+      <div class="char-avatar">🧒</div>
+      <p class="char-name">Hamzah</p>
+      <p class="char-star" id="starHamzah">⭐ 0 bintang</p>
+    </div>
+    <div class="char-card athiyah" onclick="selectCharacter('Athiyah')">
+      <div class="char-avatar">👧</div>
+      <p class="char-name">Athiyah</p>
+      <p class="char-star" id="starAthiyah">⭐ 0 bintang</p>
+    </div>
+  </div>
+  <button class="btn btn-outline" style="margin-top:34px; z-index:2;" onclick="logout()">Keluar Akun</button>
+</section>
+
+<!-- ======================= 3. DASHBOARD ======================= -->
+<section id="screen-dashboard" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-avatar" id="dashAvatarBg">🧒</div>
+      <div>
+        <div class="topbar-name" id="dashName">Hamzah</div>
+        <div class="cloud-status">☁️ Tersambung ke Cloud</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="star-badge">⭐ <span id="dashStars">0</span></div>
+      <button class="icon-btn" title="Ganti Pendaki" onclick="backToCharacterSelect()">🔄</button>
+      <button class="icon-btn" title="Keluar" onclick="logout()">🚪</button>
+    </div>
+  </div>
+
+  <h2 class="mission-title">🚩 Jalur Pendakian Juz 30</h2>
+  <p class="mission-sub">Klik setiap pos untuk mulai menghafal!</p>
+
+  <div class="trail" id="trailContainer"></div>
+
+  <div class="peak-flag">🏔️🚩</div>
+  <p class="peak-text">Puncak Hafalan Juz 30!</p>
+</section>
+
+<!-- ======================= 4. RUANG HAFALAN ======================= -->
+<section id="screen-memorize" class="screen">
+  <div class="mem-header">
+    <button class="icon-btn" onclick="showScreen('dashboard')">⬅️</button>
+    <h2 id="memTitle">Surah</h2>
+    <span class="status-pill" id="memStatusPill">Belum Hafal</span>
+  </div>
+
+  <div class="ayat-card" id="ayatCard" onclick="toggleAyat()">
+    <div class="ayat-text" id="ayatText"></div>
+    <div class="ayat-hint">👆 Ketuk kotak untuk sembunyikan / tampilkan ayat (Tebak Ayat!)</div>
+    <div class="ayat-meta" id="ayatMeta"></div>
+  </div>
+
+  <div class="mem-actions">
+    <button class="btn btn-audio" onclick="playAudio()">🔊 Dengarkan Audio</button>
+    <button class="btn" id="btnHafal" onclick="markAsMemorized()">⭐ Saya Sudah Hafal!</button>
+    <button class="btn btn-back-mem" onclick="showScreen('dashboard')">Kembali ke Jalur Pendakian</button>
+  </div>
+
+  <p class="confetti-msg" id="confettiMsg">🎉 Hebat! Satu bintang baru untukmu! 🎉</p>
+</section>
+
+<footer class="app-footer">Misi Pendaki Gunung Penghafal Al-Qur'an • Dibuat dengan ❤️ untuk Hamzah &amp; Athiyah</footer>
+
+<audio id="audioPlayer"></audio>
+
+<script>
+/* ================================================================
+   KONFIGURASI GOOGLE (WAJIB DIISI SENDIRI OLEH ORANG TUA)
+   Lihat panduan lengkap di akhir chat untuk cara mendapatkan Client ID.
+================================================================ */
+const CLIENT_ID = "GANTI_DENGAN_CLIENT_ID_ANDA.apps.googleusercontent.com";
+const SCOPES = "https://www.googleapis.com/auth/drive.appdata";
+const FILE_NAME = "progres_hafalan_juz30.json";
+
+/* ================================================================
+   DATA SURAH (Juz 30 pendek)
+   audioUrl mengarah ke server publik mp3quran.net (reciter Mishary
+   Alafasy). Jika suatu saat link berubah/rusak, ganti saja URL-nya.
+================================================================ */
+const SURAH_LIST = [
+  {
+    key: "an-nas", nomor: 114, nama: "An-Nas", arti: "Manusia",
+    arab: "قُلْ أَعُوذُ بِرَبِّ النَّاسِ ﴿١﴾ مَلِكِ النَّاسِ ﴿٢﴾ إِلَٰهِ النَّاسِ ﴿٣﴾ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ﴿٤﴾ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ﴿٥﴾ مِنَ الْجِنَّةِ وَالنَّاسِ ﴿٦﴾",
+    audioUrl: "https://server8.mp3quran.net/afs/114.mp3"
+  },
+  {
+    key: "al-falaq", nomor: 113, nama: "Al-Falaq", arti: "Waktu Subuh",
+    arab: "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ﴿١﴾ مِن شَرِّ مَا خَلَقَ ﴿٢﴾ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ﴿٣﴾ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ﴿٤﴾ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ ﴿٥﴾",
+    audioUrl: "https://server8.mp3quran.net/afs/113.mp3"
+  },
+  {
+    key: "al-ikhlas", nomor: 112, nama: "Al-Ikhlas", arti: "Memurnikan Keesaan Allah",
+    arab: "قُلْ هُوَ اللَّهُ أَحَدٌ ﴿١﴾ اللَّهُ الصَّمَدُ ﴿٢﴾ لَمْ يَلِدْ وَلَمْ يُولَدْ ﴿٣﴾ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ ﴿٤﴾",
+    audioUrl: "https://server8.mp3quran.net/afs/112.mp3"
+  },
+  {
+    key: "al-lahab", nomor: 111, nama: "Al-Lahab", arti: "Gejolak Api",
+    arab: "تَبَّتْ يَدَا أَبِي لَهَبٍ وَتَبَّ ﴿١﴾ مَا أَغْنَىٰ عَنْهُ مَالُهُ وَمَا كَسَبَ ﴿٢﴾ سَيَصْلَىٰ نَارًا ذَاتَ لَهَبٍ ﴿٣﴾ وَامْرَأَتُهُ حَمَّالَةَ الْحَطَبِ ﴿٤﴾ فِي جِيدِهَا حَبْلٌ مِّن مَّسَدٍ ﴿٥﴾",
+    audioUrl: "https://server8.mp3quran.net/afs/111.mp3"
+  },
+  {
+    key: "an-nasr", nomor: 110, nama: "An-Nasr", arti: "Pertolongan",
+    arab: "إِذَا جَاءَ نَصْرُ اللَّهِ وَالْفَتْحُ ﴿١﴾ وَرَأَيْتَ النَّاسَ يَدْخُلُونَ فِي دِينِ اللَّهِ أَفْوَاجًا ﴿٢﴾ فَسَبِّحْ بِحَمْدِ رَبِّكَ وَاسْتَغْفِرْهُ ۚ إِنَّهُ كَانَ تَوَّابًا ﴿٣﴾",
+    audioUrl: "https://server8.mp3quran.net/afs/110.mp3"
+  }
+];
+
+/* ================================================================
+   STATE APLIKASI
+================================================================ */
+let accessToken = null;
+let tokenClient = null;
+let driveFileId = null;
+let progressData = null;      // { Hamzah:{bintang:0,hafal:[]}, Athiyah:{bintang:0,hafal:[]} }
+let currentChild = null;      // "Hamzah" | "Athiyah"
+let currentSurah = null;      // objek surah yang sedang dibuka
+let ayatVisible = true;
+
+function defaultProgress(){
+  return {
+    Hamzah:  { bintang: 0, hafal: [] },
+    Athiyah: { bintang: 0, hafal: [] }
+  };
+}
+
+/* ================================================================
+   NAVIGASI ANTAR LAYAR
+================================================================ */
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+/* ================================================================
+   1. LOGIN GOOGLE (GIS - OAuth Token Client, implicit flow)
+================================================================ */
+window.addEventListener('load', () => {
+  // initTokenClient tersedia setelah script GSI selesai dimuat
+  const waitForGsi = setInterval(() => {
+    if (window.google && google.accounts && google.accounts.oauth2) {
+      clearInterval(waitForGsi);
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: handleTokenResponse
+      });
+    }
+  }, 100);
+});
+
+document.getElementById('btnGoogleLogin').addEventListener('click', () => {
+  if (!tokenClient) {
+    alert("Google sedang dimuat, coba klik sekali lagi ya...");
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+});
+
+async function handleTokenResponse(resp){
+  if (resp.error) {
+    console.error(resp);
+    alert("Gagal terhubung ke Google Drive. Coba lagi ya.");
+    return;
+  }
+  accessToken = resp.access_token;
+  showScreen('character');
+  await loadProgressFromDrive();
+}
+
+function logout(){
+  if (accessToken && window.google) {
+    google.accounts.oauth2.revoke(accessToken, () => {});
+  }
+  accessToken = null;
+  driveFileId = null;
+  progressData = null;
+  currentChild = null;
+  showScreen('login');
+}
+
+/* ================================================================
+   2. PILIH KARAKTER
+================================================================ */
+function selectCharacter(name){
+  currentChild = name;
+  renderDashboard();
+  showScreen('dashboard');
+}
+
+function backToCharacterSelect(){
+  updateCharacterStars();
+  showScreen('character');
+}
+
+function updateCharacterStars(){
+  if (!progressData) return;
+  document.getElementById('starHamzah').textContent = `⭐ ${progressData.Hamzah.bintang} bintang`;
+  document.getElementById('starAthiyah').textContent = `⭐ ${progressData.Athiyah.bintang} bintang`;
+}
+
+/* ================================================================
+   3. DASHBOARD / JALUR PENDAKIAN
+================================================================ */
+function renderDashboard(){
+  document.getElementById('dashName').textContent = currentChild;
+  document.getElementById('dashAvatarBg').textContent = currentChild === 'Hamzah' ? '🧒' : '👧';
+  document.getElementById('dashAvatarBg').className =
+    'topbar-avatar ' + (currentChild === 'Hamzah' ? 'hamzah-bg' : 'athiyah-bg');
+  document.getElementById('dashStars').textContent = progressData[currentChild].bintang;
+
+  const trail = document.getElementById('trailContainer');
+  trail.innerHTML = '';
+  SURAH_LIST.forEach((surah, idx) => {
+    const done = progressData[currentChild].hafal.includes(surah.key);
+    const side = idx % 2 === 0 ? 'right' : 'left';
+    const item = document.createElement('div');
+    item.className = `pos-item ${side}`;
+    item.innerHTML = `
+      <div class="pos-circle ${done ? 'done' : ''}" onclick="openSurah('${surah.key}')">
+        <span>⛰️</span>
+        ${done ? '<span class="pos-star">⭐</span>' : ''}
+      </div>
+      <div class="pos-label" onclick="openSurah('${surah.key}')">
+        Pos ${idx + 1}: ${surah.nama}
+        <small>${surah.arti}${done ? ' • Sudah Hafal ✅' : ''}</small>
+      </div>
+    `;
+    trail.appendChild(item);
+  });
+}
+
+/* ================================================================
+   4. RUANG HAFALAN
+================================================================ */
+function openSurah(key){
+  currentSurah = SURAH_LIST.find(s => s.key === key);
+  ayatVisible = true;
+
+  document.getElementById('memTitle').textContent = `${currentSurah.nama} (${currentSurah.arti})`;
+  document.getElementById('ayatText').textContent = currentSurah.arab;
+  document.getElementById('ayatText').classList.remove('hidden');
+  document.getElementById('ayatMeta').textContent = `Q.S. ${currentSurah.nama} — ${currentSurah.arab.split('﴿').length - 1} ayat`;
+  document.getElementById('confettiMsg').classList.remove('show');
+
+  const sudahHafal = progressData[currentChild].hafal.includes(currentSurah.key);
+  updateHafalButton(sudahHafal);
+
+  showScreen('memorize');
+}
+
+function updateHafalButton(sudahHafal){
+  const btn = document.getElementById('btnHafal');
+  const pill = document.getElementById('memStatusPill');
+  if (sudahHafal) {
+    btn.textContent = '✅ Sudah Dihafal — Ulangi Lagi Yuk!';
+    btn.className = 'btn btn-hafal-on';
+    pill.textContent = 'Sudah Hafal ⭐';
+    pill.classList.remove('locked');
+  } else {
+    btn.textContent = '⭐ Saya Sudah Hafal!';
+    btn.className = 'btn btn-hafal-off';
+    pill.textContent = 'Belum Hafal';
+    pill.classList.add('locked');
+  }
+}
+
+/* Fitur "Tebak Ayat": sembunyikan / tampilkan teks dengan blur */
+function toggleAyat(){
+  ayatVisible = !ayatVisible;
+  document.getElementById('ayatText').classList.toggle('hidden', !ayatVisible);
+}
+
+function playAudio(){
+  const player = document.getElementById('audioPlayer');
+  player.src = currentSurah.audioUrl;
+  player.play().catch(() => {
+    alert("Audio belum bisa diputar saat ini. Coba periksa koneksi internet, atau ganti sumber audio di kode.");
+  });
+}
+
+async function markAsMemorized(){
+  const list = progressData[currentChild].hafal;
+  const idx = list.indexOf(currentSurah.key);
+
+  if (idx === -1) {
+    // Belum pernah hafal -> tambahkan & tambah bintang
+    list.push(currentSurah.key);
+    progressData[currentChild].bintang += 1;
+    updateHafalButton(true);
+    showConfetti();
+  } else {
+    // Sudah hafal, klik lagi untuk "batalkan tanda hafal" (opsional, untuk koreksi orang tua)
+    list.splice(idx, 1);
+    progressData[currentChild].bintang = Math.max(0, progressData[currentChild].bintang - 1);
+    updateHafalButton(false);
+  }
+
+  document.getElementById('dashStars').textContent = progressData[currentChild].bintang;
+  await saveProgressToDrive();
+}
+
+function showConfetti(){
+  const msg = document.getElementById('confettiMsg');
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 2200);
+}
+
+/* ================================================================
+   5. PENYIMPANAN DATA KE GOOGLE DRIVE (AppData Folder)
+================================================================ */
+
+// Mencari file progres di folder appData; jika tidak ada, buat baru.
+async function loadProgressFromDrive(){
+  try {
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${FILE_NAME}'&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const searchData = await searchRes.json();
+
+    if (searchData.files && searchData.files.length > 0) {
+      // File sudah ada -> ambil isinya
+      driveFileId = searchData.files[0].id;
+      const fileRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      progressData = await fileRes.json();
+      // Jaga-jaga jika struktur lama tidak lengkap
+      progressData.Hamzah = progressData.Hamzah || { bintang: 0, hafal: [] };
+      progressData.Athiyah = progressData.Athiyah || { bintang: 0, hafal: [] };
+    } else {
+      // Pengguna baru -> buat file dengan struktur awal
+      progressData = defaultProgress();
+      await createProgressFile();
+    }
+  } catch (err) {
+    console.error("Gagal memuat progres dari Drive:", err);
+    alert("Tidak bisa memuat data dari Google Drive. Periksa koneksi internet, lalu muat ulang halaman.");
+    progressData = defaultProgress();
+  }
+  updateCharacterStars();
+}
+
+// Membuat file baru progres_hafalan_juz30.json di folder appData
+async function createProgressFile(){
+  const metadata = {
+    name: FILE_NAME,
+    parents: ['appDataFolder'],
+    mimeType: 'application/json'
+  };
+  const boundary = 'foto_batas_hafalan_juz30';
+  const body =
+    `--${boundary}\r\n` +
+    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+    `${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\n` +
+    `Content-Type: application/json\r\n\r\n` +
+    `${JSON.stringify(progressData)}\r\n` +
+    `--${boundary}--`;
+
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`
+      },
+      body
+    }
+  );
+  const data = await res.json();
+  driveFileId = data.id;
+}
+
+// Memperbarui isi file JSON yang sudah ada di Drive
+async function saveProgressToDrive(){
+  if (!driveFileId) {
+    // Jaga-jaga: jika entah kenapa file belum tercipta, buat dulu
+    await createProgressFile();
+    return;
+  }
+  try {
+    await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(progressData)
+      }
+    );
+  } catch (err) {
+    console.error("Gagal menyimpan progres ke Drive:", err);
+    alert("Gagal menyimpan ke Google Drive. Periksa koneksi internet ya.");
+  }
+}
+</script>
+</body>
+</html>
